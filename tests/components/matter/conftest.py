@@ -6,6 +6,10 @@ from collections.abc import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from matter_server.client.client import Client
+from matter_server.client.model.device_controller import DeviceController
+from matter_server.client.model.driver import Driver
+from matter_server.client.model.read_subscriptions import ReadSubscriptions
+from matter_server.common.model.message import ServerInformation
 import pytest
 
 from homeassistant.core import HomeAssistant
@@ -25,11 +29,16 @@ async def matter_client_fixture() -> AsyncGenerator[MagicMock, None]:
             """Mock connect."""
             adapter = client_class.call_args[0][0]
             client.adapter = adapter
+            client.client.server_info = MagicMock(spec=ServerInformation)
             await asyncio.sleep(0)
             client.connected = True
 
         def listen() -> None:
             """Mock listen."""
+            client.client.driver = MagicMock(spec=Driver)
+            client.client.driver.device_controller = MagicMock(spec=DeviceController)
+            client.client.driver.read_subscriptions = ReadSubscriptions(client)
+            client.client.driver.server_info = MagicMock(client.client.server_info)
             client.driver_ready.set()
 
         client.connect = AsyncMock(side_effect=connect)
